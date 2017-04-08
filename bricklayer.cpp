@@ -48,34 +48,10 @@ std::vector<std::string> split(std::string& str, char delim) {
 
 /*
 
+  reads the ini and compiles the executable/Library
 
-
-*/
-int main(int argc, char const *argv[]) {
-
-  RWIni ini;
-
-  bool ini_arg = false;
-  for (int i = 0; i < argc; i++) {
-    std::cout << "[" << i << "]: " << argv[i] << std::endl;
-    if (!ini_arg) if (ini.init(argv[i])) ini_arg = true;
-  }
-  std::string PATH = argv[0];
-  PATH = PATH.substr(0, PATH.find_last_of("/"))+ "/";
-
-  if (ini_arg) {
-    ini.init(PATH+ini.getIniFilename());
-  } else {
-    ini.init(PATH + "build.ini");
-  }
-
-  std::cout << "INI: " << ini.getIniFilename() << std::endl;
-
-  if (!ini.iniExists()) {
-    std::cout << "Unable to build without ini-file" << std::endl;
-    return -1;
-  }
-
+  */
+int build(RWIni ini, std::string PATH) {
   std::cout << "INI is readable!" << std::endl;
 
   std::string cppfiles/* = ini.getValue("build", "cpp-files")*/;
@@ -166,7 +142,7 @@ int main(int argc, char const *argv[]) {
   //do stuff
   system(f_command.c_str());
   #endif
-/*
+  /*
   File* compiler = popen(f_command, "r");
   char c;
   while ((c = std::fgetc(compiler) != EOF)) {
@@ -174,6 +150,39 @@ int main(int argc, char const *argv[]) {
   }
   pclose(compiler);*/
   std::cout << "Finished!" << std::endl;
-
   return 0;
+}
+
+/*
+
+
+
+*/
+int main(int argc, char const *argv[]) {
+
+  RWIni ini;
+
+  bool ini_arg = false;
+  for (int i = 0; i < argc; i++) {
+    std::cout << "[" << i << "]: " << argv[i] << std::endl;
+    if (!ini_arg) if (ini.init(argv[i])) ini_arg = true;
+  }
+  std::string PATH = argv[0];
+  PATH = PATH.substr(0, PATH.find_last_of("/"))+ "/";
+
+  if (ini_arg) {
+    ini.init(PATH+ini.getIniFilename());
+  } else {
+    ini.init(PATH + "build.ini");
+  }
+
+  std::cout << "INI: " << ini.getIniFilename() << std::endl;
+
+  if (!ini.iniExists()) {
+    std::cout << "Unable to build without ini-file" << std::endl;
+    return -1;
+  }
+
+
+  return build(ini, PATH);
 }
