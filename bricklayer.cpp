@@ -46,143 +46,165 @@ std::vector<std::string> split(std::string& str, char delim) {
     return elems; // return elements
 }
 
+bool getCppFiles(RWIni ini, std::string &res) {
+  if (!ini.getValue_as_String("build", "cpp-files", res)) {
+    std::cout << "Unable to retrieve cpp-filenames! (cpp-files=)" << std::endl;
+    ini.setValue("build", "cpp-files", "");
+    return false;
+  }
+  return true;
+}
+
+
+bool getLibFile(RWIni ini, std::string &res) {
+  if (!ini.getValue_as_String("build", "lib-name", res)) {
+    std::cout << "Unable to retrieve lib-name! (lib-name=)" << std::endl;
+    ini.setValue("build", "lib-name", "");
+    return false;
+  }
+  return true;
+}
+
+bool getCommand(RWIni ini, std::string &res) {
+  if (!ini.getValue_as_String("build", "command", res)) {
+    std::cout << "Unable to find command! (command=)" << std::endl;
+    command = "g++ -dynamiclib";
+    ini.setValue("build", "command", res);
+    return false;
+  }
+  return true;
+}
+
+bool getLPS(RWIni ini, std::string &res) {
+  if (!ini.getValue_as_String("build", "L", res)) {
+    std::cout << "No Library path set! (L=)" << std::endl;
+    ini.setValue("build", "L", "");
+    return false;
+  }
+  return true;
+}
+
+bool getLibs(RWIni ini, std::string &res) {
+  if (L_arg) if(!ini.getValue_as_String("build", "libs", res)) {
+    std::cout << "No libs set! (libs=)" << std::endl;
+    ini.setValue("build", "libs", "");
+    return false;
+  }
+  return true;
+}
+
+bool isFWSet(RWIni ini, std::string & res) {
+  if (!ini.getValue_as_String("build", "frameworks", res)) {
+    std::cout << "No Frameworks set! (libs=)" << std::endl;
+    ini.setValue("build", "frameworks", "");
+    return false;
+  }
+  return true;
+}
+
+bool getCppLine(RWIni ini, std::string path, std::string &line) {
+  std::string cppfiles;
+  if (!getCppFiles(ini, cppfiles)) return false;
+  std::cout << "Cpp-Files: " << cppfiles << std::endl;
+  std::vector<std::string> cpp_files = split(cppfiles, char(' '));
+  for (int i = 0; i < cpp_files.size(); i++) {
+    line += path+cpp_files[i]+ " ";
+  }
+  return true;
+}
+
+bool getLibLine(RWIni, std::string &line) {
+  std:string L;
+  bool L_arg = getLPS(ini, L);
+  if (L_arg) {
+    std::string s_libs;
+    getLibs(ini, s_libs);
+    std::vector<std::string> libs = split(s_libs, char(' '));
+    line += "-L "+L +" ";
+    for (int i = 0; i < libs.size(); i++) {
+      line +=  "-l"+libs[i]+" ";
+    }
+    return true;
+  }
+  return false;
+}
+
+bool getFrameworkLine(RWIni, std::string &line) {
+  std::string s_frameworks;
+  bool F_args = isFWSet(ini, s_frameworks);
+  std::vector<std::string> frameworks = split(s_frameworks, char(' '));
+  if (F_args) {
+    for (int i = 0; i < frameworks.size(); i++)  {
+      line += "-framework "+frameworks[i]+" ";
+    }
+    return true;
+  }
+  return false;
+}
+
+bool getFlagLine(RWIni ini, std::string &line) {
+  std::string flags;
+  if (!ini.getValue_as_String("build", "flags", flags)) {
+    std::cout << "No extra flags set!" << std::endl;
+    return false;
+  }
+  line += flags;
+  return true;
+}
+
 /*
 
   reads the ini and compiles the executable/Library
 
   */
 int build(RWIni ini, std::string PATH) {
-  std::cout << "INI is readable!" << std::endl;
-
-  std::string cppfiles/* = ini.getValue("build", "cpp-files")*/;
-  if(!ini.getValue_as_String("build", "cpp-files", cppfiles)) {
-    std::cout << "Unable to retrieve cpp-filenames! (cpp-files=)" << std::endl;
-    ini.setValue("build", "cpp-files", "");
-    return -1;
-  }
-  std::cout << "Cpp-Files: " << cppfiles << std::endl;
-
-  std::vector<std::string> cpp_files = split(cppfiles, char(' '));
-  //std::vector<std::string> files = split(cppfiles, char(' '));
-
+  std::string cppline;
+  if (!getCppLine(ini, PATH, cppline)) return -1;
   std::string libfile;
-  if (!ini.getValue_as_String("build", "lib-name", libfile)) {
-    std::cout << "Unable to retrieve lib-name! (lib-name=)" << std::endl;
-    ini.setValue("build", "lib-name", "");
-    return -1;
-  }
-
-  std::cout << "Lib-File: " << libfile << std::endl;
-
+  if (!getLibFile(ini, libfile)) return -1;
   std::string command;
-  if (!ini.getValue_as_String("build", "command", command)) {
-    std::cout << "Unable to find command! (command=)" << std::endl;
-    command = "g++ -dynamiclib";
-    ini.setValue("build", "command", command);
-  }
-
-  std::cout << "command: " << command << std::endl;
-
-  bool L_arg = true;
-  std::string L;
-  if (!ini.getValue_as_String("build", "L", L)) {
-    std::cout << "No Library path set! (L=)" << std::endl;
-    //ini.setValue("build", "L", "");
-    L_arg = false;
-  }
-
-  std::string s_libs;
-  if (L_arg) if(!ini.getValue_as_String("build", "libs", s_libs)) {
-    std::cout << "No libs set! (libs=)" << std::endl;
-    ini.setValue("build", "libs", "");
-  }
-  std::vector<std::string> libs = split(s_libs, char(' '));
-
-  bool F_args = true;
-  std::string s_frameworks;
-  if (!ini.getValue_as_String("build", "frameworks", s_frameworks)) {
-    std::cout << "No Frameworks set! (libs=)" << std::endl;
-    ini.setValue("build", "frameworks", "");
-    F_args = false;
-  }
-
-  std::string flags;
-  if (!ini.getValue_as_String("build", "flags", flags)) {
-    std::cout << "No extra flags set!" << std::endl;
-  }
-
-  std::vector<std::string> frameworks = split(s_frameworks, char(' '));
-
-
-  // create command
-  std::cout << "Creating command" << std::endl;
-
+  getCommand(ini, command);
   std::string f_command = command + " -o "+PATH+libfile +" ";
-
-  for (int i = 0; i < cpp_files.size(); i++) {
-    f_command += PATH+cpp_files[i]+ " ";
-  }
-
-  if (L_arg) {
-    f_command += "-L "+L +" ";
-    for (int i = 0; i < libs.size(); i++) {
-      f_command +=  "-l"+libs[i]+" ";
-    }
-  }
-
-  if (F_args) {
-    for (int i = 0; i < frameworks.size(); i++)  {
-      f_command += "-framework "+frameworks[i]+" ";
-    }
-  }
-
-  f_command += flags;
-  std::cout << "Building product with command: " << f_command << std::endl;
+  f_command += cppline;
+  std::string libline;
+  if (getLibLine(ini, libline)) f_command += libline;
+  std::string frameworkline;
+  if (getFrameworkLine(ini, frameworkline)) f_command += frameworkline;
+  std::string flagline;
+  if (getFlagLine(ini, flagline)) f_command += flagline;
+  std::cout << "Building Command: " << f_command << std::endl;
   #ifdef __APPLE__
-  //do stuff
   system(f_command.c_str());
   #endif
-  /*
-  File* compiler = popen(f_command, "r");
-  char c;
-  while ((c = std::fgetc(compiler) != EOF)) {
-    std::cout << c << '\n';
-  }
-  pclose(compiler);*/
-  std::cout << "Finished!" << std::endl;
   return 0;
 }
 
 /*
-
-
-
 */
 int main(int argc, char const *argv[]) {
-
   RWIni ini;
-
+  // check for a .ini in the main arguments.
   bool ini_arg = false;
   for (int i = 0; i < argc; i++) {
     std::cout << "[" << i << "]: " << argv[i] << std::endl;
     if (!ini_arg) if (ini.init(argv[i])) ini_arg = true;
   }
-  std::string PATH = argv[0];
-  PATH = PATH.substr(0, PATH.find_last_of("/"))+ "/";
 
-  if (ini_arg) {
+  std::string PATH = argv[0]; //path to executable
+  PATH = PATH.substr(0, PATH.find_last_of("/"))+ "/"; // relative search path to executable
+
+  if (ini_arg) {// if found ini
     ini.init(PATH+ini.getIniFilename());
-  } else {
+  } else { // else set ini-file to /relative/path/to/executable/build.ini
     ini.init(PATH + "build.ini");
   }
 
-  std::cout << "INI: " << ini.getIniFilename() << std::endl;
-
-  if (!ini.iniExists()) {
+  if (!ini.iniExists()) { // check if file exists
     std::cout << "Unable to build without ini-file" << std::endl;
     return -1;
+  } else {
+    std::cout << "INI: " << ini.getIniFilename() << std::endl; // print what file is used
   }
 
-
-  return build(ini, PATH);
+  return build(ini, PATH); // parse commands!
 }
