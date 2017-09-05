@@ -46,6 +46,10 @@ std::vector<std::string> split(std::string& str, char delim) {
     return elems; // return elements
 }
 
+/*
+  Checks if there is any cpp buildfiles set, if so they are returned in the res
+  parameter and the function will return true.
+*/
 bool getCppFiles(RWIni ini, std::string &res) {
   if (!ini.getValue_as_String("build", "cpp-files", res)) {
     std::cout << "Unable to retrieve cpp-filenames! (cpp-files=)" << std::endl;
@@ -55,7 +59,10 @@ bool getCppFiles(RWIni ini, std::string &res) {
   return true;
 }
 
-
+/*
+  Checks if there is a lib-name(output filename) name set, if so it is returned
+  in the res parameter, and the function will return true.
+*/
 bool getLibFile(RWIni ini, std::string &res) {
   if (!ini.getValue_as_String("build", "lib-name", res)) {
     std::cout << "Unable to retrieve lib-name! (lib-name=)" << std::endl;
@@ -65,6 +72,10 @@ bool getLibFile(RWIni ini, std::string &res) {
   return true;
 }
 
+/*
+  Checks if there is any command set, if so it will be returned in  the res
+  parameter and the function will return true.
+*/
 bool getCommand(RWIni ini, std::string &res) {
   if (!ini.getValue_as_String("build", "command", res)) {
     std::cout << "Unable to find command! (command=)" << std::endl;
@@ -75,6 +86,10 @@ bool getCommand(RWIni ini, std::string &res) {
   return true;
 }
 
+/*
+  Checks if there is a library path set, if so the value is returned in res
+  and the function returns true.
+*/
 bool getLPS(RWIni ini, std::string &res) {
   if (!ini.getValue_as_String("build", "L", res)) {
     std::cout << "No Library path set! (L=)" << std::endl;
@@ -84,8 +99,12 @@ bool getLPS(RWIni ini, std::string &res) {
   return true;
 }
 
+/*
+  Checks if there are any libs set, if so
+  they are returned in res and the function returns true
+*/
 bool getLibs(RWIni ini, std::string &res) {
-  if (L_arg) if(!ini.getValue_as_String("build", "libs", res)) {
+  if(!ini.getValue_as_String("build", "libs", res)) {
     std::cout << "No libs set! (libs=)" << std::endl;
     ini.setValue("build", "libs", "");
     return false;
@@ -93,6 +112,11 @@ bool getLibs(RWIni ini, std::string &res) {
   return true;
 }
 
+/*
+  Checks if any frameworks are set.
+  if so the line is returned in res
+  and the function returns true
+*/
 bool isFWSet(RWIni ini, std::string & res) {
   if (!ini.getValue_as_String("build", "frameworks", res)) {
     std::cout << "No Frameworks set! (libs=)" << std::endl;
@@ -102,6 +126,10 @@ bool isFWSet(RWIni ini, std::string & res) {
   return true;
 }
 
+/*
+  Create substring for Cpp files to build
+  Returns false if no cpp files are set.
+*/
 bool getCppLine(RWIni ini, std::string path, std::string &line) {
   std::string cppfiles;
   if (!getCppFiles(ini, cppfiles)) return false;
@@ -113,6 +141,10 @@ bool getCppLine(RWIni ini, std::string path, std::string &line) {
   return true;
 }
 
+/*
+  Create substring for libs.
+  Returns false if no libs are set.
+*/
 bool getLibLine(RWIni, std::string &line) {
   std:string L;
   bool L_arg = getLPS(ini, L);
@@ -129,6 +161,10 @@ bool getLibLine(RWIni, std::string &line) {
   return false;
 }
 
+/*
+  Create substring for frameworks.
+  Returns false if no frameworks are set.
+*/
 bool getFrameworkLine(RWIni, std::string &line) {
   std::string s_frameworks;
   bool F_args = isFWSet(ini, s_frameworks);
@@ -142,6 +178,10 @@ bool getFrameworkLine(RWIni, std::string &line) {
   return false;
 }
 
+/*
+  Create substring for flags.
+  Returns false if no flags are set.
+*/
 bool getFlagLine(RWIni ini, std::string &line) {
   std::string flags;
   if (!ini.getValue_as_String("build", "flags", flags)) {
@@ -153,26 +193,30 @@ bool getFlagLine(RWIni ini, std::string &line) {
 }
 
 /*
-
-  reads the ini and compiles the executable/Library
-
+  Reads the ini and compiles the executable/Library
   */
 int build(RWIni ini, std::string PATH) {
   std::string cppline;
   if (!getCppLine(ini, PATH, cppline)) return -1;
+
   std::string libfile;
   if (!getLibFile(ini, libfile)) return -1;
+
   std::string command;
   getCommand(ini, command);
   std::string f_command = command + " -o "+PATH+libfile +" ";
   f_command += cppline;
+
   std::string libline;
   if (getLibLine(ini, libline)) f_command += libline;
+
   std::string frameworkline;
   if (getFrameworkLine(ini, frameworkline)) f_command += frameworkline;
+
   std::string flagline;
   if (getFlagLine(ini, flagline)) f_command += flagline;
-  std::cout << "Building Command: " << f_command << std::endl;
+
+  std::cout << "Building with Command: " << f_command << std::endl;
   #ifdef __APPLE__
   system(f_command.c_str());
   #endif
@@ -180,6 +224,7 @@ int build(RWIni ini, std::string PATH) {
 }
 
 /*
+Run Bricklayer!
 */
 int main(int argc, char const *argv[]) {
   RWIni ini;
